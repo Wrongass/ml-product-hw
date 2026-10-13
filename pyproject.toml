@@ -7,7 +7,9 @@ authors = [
     { name = "Kirill Morozov", email = "72659890+Wrongass@users.noreply.github.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "joblib>=1.6.0",
+]
 
 [project.scripts]
 ml-product-hw = "ml_product_hw:main"
@@ -31,3 +33,12 @@ extend-select = ["B", "I"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+exclude = ['\.venv/', '__pycache__/', 'build/', 'dist/']
+
+[[tool.mypy.overrides]]
+module = ["joblib", "joblib.*"]
+ignore_missing_imports = true
