@@ -10,7 +10,10 @@ requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.43.114",
     "joblib>=1.6.0",
+    "numpy>=2.5.4",
+    "pillow>=12.3.0",
     "python-dotenv>=1.2.4",
+    "scikit-learn>=1.9.1",
 ]
 
 [project.scripts]
@@ -47,4 +50,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["sklearn", "sklearn.*"]
 ignore_missing_imports = true
