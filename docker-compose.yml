@@ -37,3 +37,7 @@ services:
 
 volumes:
   rustfs_data:
+
+networks:
+  default:
+    name: ml-product-hw

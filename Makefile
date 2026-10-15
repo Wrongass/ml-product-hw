@@ -26,8 +26,9 @@ ingest: env
 	uv run python -m ml_product_hw.data.ingest
 
 data: env
+	uv run python -m ml_product_hw.data.upload --version $(VERSION) --check-only
 	uv run python -m ml_product_hw.data.download
 	uv run python -m ml_product_hw.data.convert
 	uv run python -m ml_product_hw.data.split --val-size $(VAL_SIZE) --seed $(SEED)
 	uv run python -m ml_product_hw.data.stats
-	uv run python -m ml_product_hw.data.upload --version $(VERSION) --val-size $(VAL_SIZE) --seed $(SEED)
+	uv run python -m ml_product_hw.data.upload --version $(VERSION)

@@ -35,7 +35,7 @@ make s3-down  # остановить (данные остаются в volume)
 
 ```bash
 source .env
-docker run --rm --network ml-product-hw_default \
+docker run --rm --network ml-product-hw \
   -e AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY -e AWS_SECRET_ACCESS_KEY=$S3_SECRET_KEY \
   amazon/aws-cli:2.38.0 --endpoint-url http://rustfs:9000 --region us-east-1 \
   s3 ls s3://cifar10/processed/cifar10/v1/
@@ -58,7 +58,7 @@ make data     # весь конвейер обработки, результат
 make data SEED=7 VAL_SIZE=5000 VERSION=v2
 ```
 
-По умолчанию `SEED=42`, `VAL_SIZE=5000`, `VERSION=v1`. Если такая версия уже есть в S3, выгрузка падает с ошибкой, нужно указать другую `VERSION`.
+По умолчанию `SEED=42`, `VAL_SIZE=5000`, `VERSION=v1`. Если такая версия уже есть в S3 (у нее есть manifest.json), `make data` сразу падает с ошибкой, нужно указать другую `VERSION`. Если прошлая выгрузка оборвалась и manifest.json нет, версию можно загрузить заново.
 
 `make data` запускает по очереди шаги, каждый можно запустить отдельно (параметры смотреть через `--help`):
 

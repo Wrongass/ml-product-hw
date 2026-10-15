@@ -47,6 +47,10 @@ def main() -> None:
 
     save_json(train_path, {"classes": classes, "images": train_images})
     save_json(val_path, {"classes": classes, "images": val_images})
+    save_json(
+        os.path.join(args.data_dir, "split_params.json"),
+        {"val_size": args.val_size, "seed": args.seed},
+    )
     print(f"train: {len(train_images)}, val: {len(val_images)}")
 
 

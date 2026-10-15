@@ -7,7 +7,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from ml_product_hw.data.s3 import get_bucket, get_client
+from ml_product_hw.data.s3 import get_bucket, get_client, object_exists
 
 SPLITS = ["train", "val", "test"]
 
@@ -28,24 +28,28 @@ def main() -> None:
     parser.add_argument("--data-dir", default="data/processed")
     parser.add_argument("--prefix", default="processed/cifar10")
     parser.add_argument("--version", default="v1")
-    parser.add_argument("--val-size", type=int, default=5000)
-    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--check-only", action="store_true")
     args = parser.parse_args()
 
     client = get_client()
     bucket = get_bucket()
     s3_prefix = f"{args.prefix}/{args.version}/"
 
-    # versions are immutable
-    response = client.list_objects_v2(Bucket=bucket, Prefix=s3_prefix, MaxKeys=1)
-    if response.get("KeyCount", 0) > 0:
+    # version exists only if manifest was uploaded, without it the upload was interrupted
+    if object_exists(client, bucket, s3_prefix + "manifest.json"):
         print(
             f"error: version {args.version} already exists in s3://{bucket}/{s3_prefix}\n"
             "choose another version, for example: make data VERSION=v2",
             file=sys.stderr,
         )
         sys.exit(1)
+    if args.check_only:
+        print(f"version {args.version} is free")
+        return
+
+    with open(os.path.join(args.data_dir, "split_params.json")) as f:
+        params = json.load(f)
 
     counts = {}
     image_files = []
@@ -80,7 +84,7 @@ def main() -> None:
         "version": args.version,
         "num_images": counts,
         "files": files,
-        "params": {"val_size": args.val_size, "seed": args.seed},
+        "params": params,
         "git_commit": git_output(["rev-parse", "HEAD"]),
     }
     manifest_path = os.path.join(args.data_dir, "manifest.json")
