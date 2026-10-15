@@ -17,5 +17,5 @@ wheels/
 .ipynb_checkpoints/
 
 #Data and models
-data/
+/data/
 models/
