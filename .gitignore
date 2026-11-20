@@ -19,3 +19,4 @@ wheels/
 #Data and models
 /data/
 models/
+tmp/
