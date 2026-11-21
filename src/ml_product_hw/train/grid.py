@@ -2,7 +2,6 @@ import argparse
 import itertools
 import os
 import subprocess
-import sys
 
 from omegaconf import OmegaConf
 
@@ -11,6 +10,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run grid of experiments")
     parser.add_argument("--config", default="configs/grid.yaml")
     parser.add_argument("--out-dir", default="tmp/grid")
+    parser.add_argument("--image", default="ml-product-hw-train")
     args = parser.parse_args()
 
     grid_cfg = OmegaConf.load(args.config)
@@ -40,9 +40,32 @@ def main() -> None:
 
     for path in paths:
         print("run", path)
-        subprocess.run(
-            [sys.executable, "-m", "ml_product_hw.train.train", "--config", path], check=True
-        )
+        cmd = [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            "ml-product-hw",
+            "--env-file",
+            ".env",
+            "-e",
+            "S3_ENDPOINT_URL=http://rustfs:9000",
+            "-e",
+            "MLFLOW_TRACKING_URI=http://mlflow:5000",
+            "-e",
+            "GIT_COMMIT=" + os.environ["GIT_COMMIT"],
+            "-v",
+            os.path.abspath("data") + ":/app/data",
+            "-v",
+            os.path.abspath(args.out_dir) + ":/app/" + args.out_dir,
+            args.image,
+            "python",
+            "-m",
+            "ml_product_hw.train.train",
+            "--config",
+            path,
+        ]
+        subprocess.run(cmd, check=True)
 
 
 if __name__ == "__main__":
