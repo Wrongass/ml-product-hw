@@ -1,7 +1,6 @@
 SEED ?= 42
 VAL_SIZE ?= 5000
 VERSION ?= v1
-CONFIG ?= configs/grid.yaml
 IMAGE = ml-product-hw-train
 GIT_COMMIT = $(shell git rev-parse HEAD)
 
@@ -43,6 +42,7 @@ infra-up: env
 infra-down:
 	docker compose down
 
+train: CONFIG ?= configs/simple_cnn.yaml
 train: env
 	docker run --rm --network ml-product-hw --env-file .env \
 		-e S3_ENDPOINT_URL=http://rustfs:9000 \
@@ -52,5 +52,6 @@ train: env
 		-v $(PWD)/configs:/app/configs \
 		$(IMAGE) python -m ml_product_hw.train.train --config $(CONFIG)
 
+experiments: CONFIG ?= configs/grid.yaml
 experiments: env
 	GIT_COMMIT=$(GIT_COMMIT) uv run python -m ml_product_hw.train.grid --config $(CONFIG) --image $(IMAGE)
