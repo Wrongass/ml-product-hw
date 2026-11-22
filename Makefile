@@ -1,8 +1,10 @@
 SEED ?= 42
 VAL_SIZE ?= 5000
 VERSION ?= v1
+IMAGE = ml-product-hw-train
+GIT_COMMIT = $(shell git rev-parse HEAD)
 
-.PHONY: setup check env s3-up s3-down ingest data
+.PHONY: setup check env s3-up s3-down ingest data infra-up infra-down train experiments
 
 setup: env
 	uv sync
@@ -32,3 +34,24 @@ data: env
 	uv run python -m ml_product_hw.data.split --val-size $(VAL_SIZE) --seed $(SEED)
 	uv run python -m ml_product_hw.data.stats
 	uv run python -m ml_product_hw.data.upload --version $(VERSION)
+
+infra-up: env
+	docker build -t $(IMAGE) .
+	docker compose up -d --build --wait
+
+infra-down:
+	docker compose down
+
+train: CONFIG ?= configs/simple_cnn.yaml
+train: env
+	docker run --rm --network ml-product-hw --env-file .env \
+		-e S3_ENDPOINT_URL=http://rustfs:9000 \
+		-e MLFLOW_TRACKING_URI=http://mlflow:5000 \
+		-e GIT_COMMIT=$(GIT_COMMIT) \
+		-v $(PWD)/data:/app/data \
+		-v $(PWD)/configs:/app/configs \
+		$(IMAGE) python -m ml_product_hw.train.train --config $(CONFIG)
+
+experiments: CONFIG ?= configs/grid.yaml
+experiments: env
+	GIT_COMMIT=$(GIT_COMMIT) uv run python -m ml_product_hw.train.grid --config $(CONFIG) --image $(IMAGE)
