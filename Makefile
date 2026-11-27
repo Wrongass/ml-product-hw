@@ -4,7 +4,7 @@ VERSION ?= v1
 IMAGE = ml-product-hw-train
 GIT_COMMIT = $(shell git rev-parse HEAD)
 
-.PHONY: setup check env s3-up s3-down ingest data infra-up infra-down train experiments
+.PHONY: setup check env s3-up s3-down ingest data infra-up infra-down train experiments export serve-up serve-down
 
 setup: env
 	uv sync
@@ -55,3 +55,12 @@ train: env
 experiments: CONFIG ?= configs/grid.yaml
 experiments: env
 	GIT_COMMIT=$(GIT_COMMIT) uv run python -m ml_product_hw.train.grid --config $(CONFIG) --image $(IMAGE)
+
+export: env
+	uv run python -m ml_product_hw.serving.export
+
+serve-up: env
+	docker compose --profile serving up -d --build --wait
+
+serve-down:
+	docker compose --profile serving down

@@ -1,0 +1,3 @@
+model_s3_path: models/cifar10-final/cnn-lr0.001-bs128-full
+model_name: cifar_cnn
+data_s3_path: processed/cifar10/v1

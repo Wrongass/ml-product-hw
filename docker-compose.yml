@@ -86,6 +86,22 @@ services:
       timeout: 5s
       retries: 30
 
+  triton:
+    image: nvcr.io/nvidia/tritonserver:26.09-py3
+    profiles: ["serving"]
+    command: ["tritonserver", "--model-repository=/models"]
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+    volumes:
+      - ./model_repository:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v2/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
 volumes:
   rustfs_data:
   postgres_data:
