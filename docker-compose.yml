@@ -102,6 +102,27 @@ services:
       timeout: 3s
       retries: 30
 
+  api:
+    build: .
+    profiles: ["serving"]
+    depends_on:
+      triton:
+        condition: service_healthy
+    command: ["uvicorn", "ml_product_hw.serving.app:app", "--host", "0.0.0.0", "--port", "8081"]
+    ports:
+      - "8081:8081"
+    environment:
+      TRITON_URL: triton:8000
+      MODEL_NAME: cifar_cnn
+      STATS_PATH: /app/serving_data/stats.json
+    volumes:
+      - ./serving_data:/app/serving_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 volumes:
   rustfs_data:
   postgres_data:

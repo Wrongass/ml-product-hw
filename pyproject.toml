@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.43.114",
+    "fastapi>=0.165.0",
     "joblib>=1.6.0",
     "matplotlib>=3.11.2",
     "mlflow==3.16.0",
@@ -19,8 +20,11 @@ dependencies = [
     "onnxscript>=0.7.2",
     "pillow>=12.3.0",
     "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.34",
     "scikit-learn>=1.9.1",
     "torch>=2.15.0",
+    "tritonclient[http]>=2.75.0",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
@@ -72,5 +76,5 @@ module = ["sklearn", "sklearn.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["onnxruntime", "onnxruntime.*"]
+module = ["onnxruntime", "onnxruntime.*", "tritonclient", "tritonclient.*"]
 ignore_missing_imports = true
