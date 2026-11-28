@@ -4,7 +4,7 @@ VERSION ?= v1
 IMAGE = ml-product-hw-train
 GIT_COMMIT = $(shell git rev-parse HEAD)
 
-.PHONY: setup check env s3-up s3-down ingest data infra-up infra-down train experiments export serve-up serve-down
+.PHONY: setup check env s3-up s3-down ingest data infra-up infra-down train experiments export serve-up serve-down verify load-test
 
 setup: env
 	uv sync
@@ -64,3 +64,9 @@ serve-up: env
 
 serve-down:
 	docker compose --profile serving down
+
+verify: env
+	uv run python -m ml_product_hw.serving.verify
+
+load-test: env
+	uv run python -m ml_product_hw.serving.load_test

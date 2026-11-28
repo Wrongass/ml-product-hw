@@ -149,3 +149,58 @@ make experiments CONFIG=configs/grid.yaml   # сетка, каждый запу�
 Остальные запуски сетки: val accuracy 0.6056 (lr 0.003, bs 64), 0.6014 (lr 0.003, bs 128) и 0.6302 (lr 0.0003, bs 128).
 
 Выбрана конфигурация lr 0.001 и batch size 128: в сетке у нее самый маленький val loss и самые высокие val accuracy и F1. Ее обучили на всем train 20 эпох (`configs/final.yaml`), лучшая эпоха 6, дальше модель переобучается и val loss растет. Итоговая CNN дает 0.7184 accuracy на test, baseline из одного линейного слоя 0.3638.
+
+## Serving
+
+Модель работает в Triton Inference Server на CPU, снаружи к ней ходят через HTTP-обертку на FastAPI.
+
+### Какая модель развернута
+
+- эксперимент `cifar10-final`, запуск `cnn-lr0.001-bs128-full` (итоговая модель из раздела Эксперименты)
+- в Triton модель называется `cifar_cnn`, версия `1`
+- данные `processed/cifar10/v1`, из этой же версии берется `stats.json` для нормализации
+
+Путь к запуску, имя модели и версия данных лежат в `configs/serving.yaml`.
+
+В Triton запущено 2 экземпляра модели. Модель маленькая и считается быстро, а процессор общий с оберткой и клиентом, поэтому 2 экземпляров хватит.
+
+### Запуск
+
+```bash
+make s3-up        # или make infra-up, нужен S3 с моделью и данными
+make export       # скачать модель и stats.json, экспорт в ONNX, собрать model_repository/
+make serve-up     # поднять Triton (порты 8000, 8001, 8002) и обертку (порт 8081)
+make verify       # проверить метрики через обертку
+make load-test    # нагрузочный тест
+make serve-down   # остановить все
+```
+
+`make export` нужно запускать до `make serve-up`: Triton читает `model_repository/` при старте. `model_repository/` и `serving_data/` (там лежит `stats.json` для обертки) создаются скриптом и в git не попадают. `config.pbtxt` хранится в `configs/triton/`.
+
+Пример запроса:
+
+```bash
+curl -F file=@data/train/processed/cifar10/v1/images/test_00000.png http://localhost:8081/predict
+```
+
+```json
+{"class_id": 5, "class_name": "dog", "probabilities": [0.0007, 0.0015, ...], "model_name": "cifar_cnn", "model_version": "1"}
+```
+
+`GET /health` отвечает 200, если Triton и модель готовы, и 503, если нет. Если отправить не картинку или пустой файл, обертка отвечает 400.
+
+### Проверка метрик
+
+`make verify` отправляет все 10000 картинок test через `POST /predict`, считает метрики по вероятностям из ответа и сравнивает с test из `metrics.json` запуска.
+
+| Метрика | При обучении | В сервисе | Разница | Допуск |
+|---|---|---|---|---|
+| loss | 0.8650 | 0.8650 | 0.0000 | 0.01 |
+| accuracy | 0.7184 | 0.7184 | 0.0000 | 0.002 |
+| F1 (macro) | 0.7180 | 0.7180 | 0.0000 | 0.002 |
+
+Допуски задаются аргументами `--loss-tol`, `--accuracy-tol` и `--f1-tol`. Препроцессинг в обертке тот же, что при обучении, поэтому разница может быть только из-за мелких отличий float32 между PyTorch и ONNX Runtime. Допуск 0.002 для accuracy и F1 это 20 картинок из 10000, для loss допуск 0.01. С неверным `stats.json` accuracy падает до 0.54, и проверка не проходит.
+
+### Нагрузочный тест
+
+Результаты, условия замера и выводы в [reports/load_test.md](reports/load_test.md). Сырые замеры в `reports/load_test_raw.csv`.

@@ -21,6 +21,7 @@ dependencies = [
     "pillow>=12.3.0",
     "python-dotenv>=1.2.4",
     "python-multipart>=0.0.34",
+    "requests>=2.34.2",
     "scikit-learn>=1.9.1",
     "torch>=2.15.0",
     "tritonclient[http]>=2.75.0",
@@ -76,5 +77,5 @@ module = ["sklearn", "sklearn.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["onnxruntime", "onnxruntime.*", "tritonclient", "tritonclient.*"]
+module = ["onnxruntime", "onnxruntime.*", "tritonclient", "tritonclient.*", "requests", "requests.*"]
 ignore_missing_imports = true
