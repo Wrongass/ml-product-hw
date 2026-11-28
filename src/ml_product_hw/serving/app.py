@@ -1,10 +1,12 @@
 import io
 import json
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 import numpy as np
-import tritonclient.http as triton
+import tritonclient.http.aio as triton
 from fastapi import FastAPI, HTTPException, UploadFile
 from PIL import Image
 
@@ -30,9 +32,15 @@ with open(STATS_PATH) as f:
 MEAN = np.array(stats["mean"], dtype=np.float32)
 STD = np.array(stats["std"], dtype=np.float32)
 
-client = triton.InferenceServerClient(TRITON_URL)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    app.state.client = triton.InferenceServerClient(TRITON_URL)
+    yield
+    await app.state.client.close()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 def preprocess(content: bytes) -> Any:
@@ -44,8 +52,9 @@ def preprocess(content: bytes) -> Any:
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    client = app.state.client
     try:
-        ready = client.is_server_ready() and client.is_model_ready(MODEL_NAME)
+        ready = await client.is_server_ready() and await client.is_model_ready(MODEL_NAME)
     except Exception:  # noqa: BLE001
         ready = False
     if not ready:
@@ -65,7 +74,7 @@ async def predict(file: UploadFile) -> dict[str, Any]:
 
     inputs = [triton.InferInput("input", list(x.shape), "FP32")]
     inputs[0].set_data_from_numpy(x)
-    result = client.infer(MODEL_NAME, inputs)
+    result = await app.state.client.infer(MODEL_NAME, inputs)
     logits = result.as_numpy("logits")[0]
 
     exp = np.exp(logits - logits.max())
